@@ -29,14 +29,49 @@ hw_stream = spark.readStream \
 # COMMAND ----------
 
 hw_stream \
-    .groupBy("city", "id").count() \
     .writeStream \
     .format("delta") \
-    .outputMode("complete") \
-    .option("checkpointLocation", "/tmp/_checkpoints/") \
-    .toTable("hotel_by_city_count") 
+    .option("checkpointLocation", "/tmp/checkpoints/") \
+    .toTable("hotel_weather") 
 
 # COMMAND ----------
 
 # MAGIC %sql
-# MAGIC select * from hotel_by_city_count order by count desc
+# MAGIC select count(*) as total_records_number from hotel_weather
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC Calculate in for each city each day:
+# MAGIC * Number of distinct hotels in the city.
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC select wthr_date, city, count(*) as count_by_city
+# MAGIC from hotel_weather
+# MAGIC group by wthr_date, city
+# MAGIC order by count_by_city desc, wthr_date
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC Calculate in for each city each day:
+# MAGIC * Average/max/min temperature in the city.
+# MAGIC
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC select distinct avg_tmpr_c from hotel_weather where city='Albuquerque'
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC select wthr_date, city, 
+# MAGIC   round(min(avg_tmpr_c), 2) as min_temperature_c,
+# MAGIC   round(avg(avg_tmpr_c), 2) as mean_temperature_c,
+# MAGIC   round(max(avg_tmpr_c), 2) as max_temperature_c,
+# MAGIC   count(*) as records
+# MAGIC from hotel_weather
+# MAGIC group by wthr_date, city
