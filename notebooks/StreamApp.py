@@ -156,26 +156,33 @@ thr.start()
 # COMMAND ----------
 
 # MAGIC %sql
-# MAGIC create or replace temp view top10_cities_with_stats as (
+# MAGIC create or replace temp view top10_cities_weather_by_date as (
 # MAGIC   select 
-# MAGIC     top.city, 
-# MAGIC     round(avg(stats.min_temperature_c), 2) as avg_min_temperature_c,
-# MAGIC     round(avg(stats.mean_temperature_c), 2) as avg_mean_temperature_c,
-# MAGIC     round(avg(stats.max_temperature_c), 2) as avg_max_temperature_c,
-# MAGIC     max(top.hotels_in_city) as hotels_in_city
-# MAGIC   from top10_cities as top
-# MAGIC       join hotel_weather_stats as stats on top.city=stats.city
-# MAGIC   group by top.city
-# MAGIC )
-# MAGIC ;
+# MAGIC     stats.wthr_date,
+# MAGIC     round(min(stats.min_temperature_c), 2) as min_temperature_c,
+# MAGIC     round(avg(stats.mean_temperature_c), 2) as mean_temperature_c,
+# MAGIC     round(max(stats.max_temperature_c), 2) as max_temperature_c,
+# MAGIC     sum(w.cnt_dist_id) as distinct_hotels_in_city_in_day
+# MAGIC   from 
+# MAGIC     top10_cities as top
+# MAGIC     join hotel_weather_stats as stats on top.city=stats.city,
+# MAGIC     lateral (select count(distinct id) as cnt_dist_id from hotel_weather hw2 where hw2.city=top.city and hw2.wthr_date=stats.wthr_date) W
+# MAGIC   group by stats.wthr_date
+# MAGIC   order by stats.wthr_date
+# MAGIC );
 # MAGIC
-# MAGIC select * from top10_cities_with_stats
+# MAGIC select * from top10_cities_weather_by_date
 
 # COMMAND ----------
 
 import seaborn as sns
 import matplotlib.pyplot as plt
 
+pd_stats = spark.sql("select * from top10_cities_weather_by_date").toPandas()
 
+dims = (5, 2)
+f, axes = plt.subplots(dims[0], dims[1], figsize=(25, 15))
 
-
+# X-axis: date (date of observation).
+# Y-axis: number of distinct hotels, average/max/min temperature.
+sns.barplot(x=pd_stats.wthr_date, y=pd_stats[col], ax=axes[axis_y, axis_x])
