@@ -177,18 +177,22 @@ thr.start()
 # COMMAND ----------
 
 # DBTITLE 1,Prepare multiple datasets for plotting graphs
-import seaborn as sns
-import matplotlib.pyplot as plt
-
 pd_stats_grouped = spark.sql("select * from top10_cities_weather_by_date").toPandas().groupby("city")
 datasets = {}
 for city,stats_in_city in pd_stats_grouped:
     datasets[city] = stats_in_city
 
+print(f"Cities: {datasets.keys()}")
+
 # COMMAND ----------
 
-dims = (10, 1)
-f, axes = plt.subplots(dims[0], dims[1], figsize=(40, 18))
+# DBTITLE 1,Graph plotting code here:
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+# 10 rows, 1 column
+f, axes = plt.subplots(10, 1, figsize=(40, 20))
+plt.subplots_adjust(hspace=1.5)
 sns.set(style="whitegrid")
 plot_row = 0
 
@@ -198,17 +202,18 @@ for city in datasets:
     ds = datasets[city]
 
     # X-axis: date (date of observation).
-    # Y-axis: number of distinct hotels, average/max/min temperature.
-    ax1 = sns.lineplot(x=ds.wthr_date, y=ds.min_temperature_c, label="Min Temperature", ax=axes[plot_row])
-    sns.lineplot(x=ds.wthr_date, y=ds.mean_temperature_c, label="Max Temperature", ax=axes[plot_row])
-    sns.lineplot(x=ds.wthr_date, y=ds.max_temperature_c, label="Avg Temperature", ax=axes[plot_row])
+    # Y-axis #1: average/max/min temperature.
+    ax1 = sns.lineplot(x=ds.wthr_date, y=ds.min_temperature_c, label="Min temperature", ax=axes[plot_row])
+    sns.lineplot(x=ds.wthr_date, y=ds.mean_temperature_c, label="Max temperature", ax=axes[plot_row])
+    sns.lineplot(x=ds.wthr_date, y=ds.max_temperature_c, label="Avg temperature", ax=axes[plot_row])
+    ax1.set_xlabel("")
 
-    # Create a twin y-axis on the right for the number of observations
+    # Y-axis #2: number of distinct hotels
     ax4 = ax1.twinx()
-    sns.scatterplot(x=ds.wthr_date, y=ds.distinct_hotels_in_city_in_day, color='red', label='Hotels count', ax=ax4)
-    ax1.set_ylabel('Temperature (°C)')
-    ax4.set_ylabel('Hotels count')
-    ax1.legend(loc='upper left')
+    sns.scatterplot(x=ds.wthr_date, y=ds.distinct_hotels_in_city_in_day, color="red", label="Hotels count", ax=ax4)
+    ax1.set_ylabel("Temperature (°C)")
+    ax4.set_ylabel("Hotels count")
+    ax1.legend(loc="upper left")
 
     plot_row += 1
 
