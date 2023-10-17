@@ -159,6 +159,7 @@ thr.start()
 # MAGIC create or replace temp view top10_cities_weather_by_date as (
 # MAGIC   select 
 # MAGIC     stats.wthr_date,
+# MAGIC     top.city,
 # MAGIC     round(min(stats.min_temperature_c), 2) as min_temperature_c,
 # MAGIC     round(avg(stats.mean_temperature_c), 2) as mean_temperature_c,
 # MAGIC     round(max(stats.max_temperature_c), 2) as max_temperature_c,
@@ -167,8 +168,8 @@ thr.start()
 # MAGIC     top10_cities as top
 # MAGIC     join hotel_weather_stats as stats on top.city=stats.city,
 # MAGIC     lateral (select count(distinct id) as cnt_dist_id from hotel_weather hw2 where hw2.city=top.city and hw2.wthr_date=stats.wthr_date) W
-# MAGIC   group by stats.wthr_date
-# MAGIC   order by stats.wthr_date
+# MAGIC   group by stats.wthr_date, top.city
+# MAGIC   order by stats.wthr_date, top.city
 # MAGIC );
 # MAGIC
 # MAGIC select * from top10_cities_weather_by_date
@@ -180,9 +181,26 @@ import matplotlib.pyplot as plt
 
 pd_stats = spark.sql("select * from top10_cities_weather_by_date").toPandas()
 
+
+# COMMAND ----------
+
 dims = (5, 2)
 f, axes = plt.subplots(dims[0], dims[1], figsize=(25, 15))
+sns.set(style="whitegrid")
+
+plt.title('Temperature/hotels count over time')
+plt.xlabel('Date')
 
 # X-axis: date (date of observation).
 # Y-axis: number of distinct hotels, average/max/min temperature.
-sns.barplot(x=pd_stats.wthr_date, y=pd_stats[col], ax=axes[axis_y, axis_x])
+ax1 = sns.lineplot(x=pd_stats.wthr_date, y=pd_stats.min_temperature_c, label='Min Temperature', ax=axes[0, 0])
+sns.lineplot(x=pd_stats.wthr_date, y=pd_stats.mean_temperature_c, label='Max Temperature', ax=axes[0, 0])
+sns.lineplot(x=pd_stats.wthr_date, y=pd_stats.max_temperature_c, label='Avg Temperature', ax=axes[0, 0])
+
+# Create a twin y-axis on the right for the number of observations
+ax4 = ax1.twinx()
+sns.scatterplot(x=pd_stats.wthr_date, y=pd_stats.distinct_hotels_in_city_in_day, color='red', label='Hotels count', ax=ax4)
+ax1.set_ylabel('Temperature (°C)')
+ax4.set_ylabel('Hotels count')
+ax1.legend(loc='upper left')
+
