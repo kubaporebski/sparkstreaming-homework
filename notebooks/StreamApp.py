@@ -169,38 +169,46 @@ thr.start()
 # MAGIC     join hotel_weather_stats as stats on top.city=stats.city,
 # MAGIC     lateral (select count(distinct id) as cnt_dist_id from hotel_weather hw2 where hw2.city=top.city and hw2.wthr_date=stats.wthr_date) W
 # MAGIC   group by stats.wthr_date, top.city
-# MAGIC   order by stats.wthr_date, top.city
+# MAGIC   order by top.city, stats.wthr_date
 # MAGIC );
 # MAGIC
 # MAGIC select * from top10_cities_weather_by_date
 
 # COMMAND ----------
 
+# DBTITLE 1,Prepare multiple datasets for plotting graphs
 import seaborn as sns
 import matplotlib.pyplot as plt
 
-pd_stats = spark.sql("select * from top10_cities_weather_by_date").toPandas()
-
+pd_stats_grouped = spark.sql("select * from top10_cities_weather_by_date").toPandas().groupby("city")
+datasets = {}
+for city,stats_in_city in pd_stats_grouped:
+    datasets[city] = stats_in_city
 
 # COMMAND ----------
 
-dims = (5, 2)
-f, axes = plt.subplots(dims[0], dims[1], figsize=(25, 15))
+dims = (10, 1)
+f, axes = plt.subplots(dims[0], dims[1], figsize=(40, 18))
 sns.set(style="whitegrid")
+plot_row = 0
 
-plt.title('Temperature/hotels count over time')
-plt.xlabel('Date')
+for city in datasets:
+    plt.title(f"Temperature & hotel count in {city}")
+    plt.xlabel("Date")
+    ds = datasets[city]
 
-# X-axis: date (date of observation).
-# Y-axis: number of distinct hotels, average/max/min temperature.
-ax1 = sns.lineplot(x=pd_stats.wthr_date, y=pd_stats.min_temperature_c, label='Min Temperature', ax=axes[0, 0])
-sns.lineplot(x=pd_stats.wthr_date, y=pd_stats.mean_temperature_c, label='Max Temperature', ax=axes[0, 0])
-sns.lineplot(x=pd_stats.wthr_date, y=pd_stats.max_temperature_c, label='Avg Temperature', ax=axes[0, 0])
+    # X-axis: date (date of observation).
+    # Y-axis: number of distinct hotels, average/max/min temperature.
+    ax1 = sns.lineplot(x=ds.wthr_date, y=ds.min_temperature_c, label="Min Temperature", ax=axes[plot_row])
+    sns.lineplot(x=ds.wthr_date, y=ds.mean_temperature_c, label="Max Temperature", ax=axes[plot_row])
+    sns.lineplot(x=ds.wthr_date, y=ds.max_temperature_c, label="Avg Temperature", ax=axes[plot_row])
 
-# Create a twin y-axis on the right for the number of observations
-ax4 = ax1.twinx()
-sns.scatterplot(x=pd_stats.wthr_date, y=pd_stats.distinct_hotels_in_city_in_day, color='red', label='Hotels count', ax=ax4)
-ax1.set_ylabel('Temperature (°C)')
-ax4.set_ylabel('Hotels count')
-ax1.legend(loc='upper left')
+    # Create a twin y-axis on the right for the number of observations
+    ax4 = ax1.twinx()
+    sns.scatterplot(x=ds.wthr_date, y=ds.distinct_hotels_in_city_in_day, color='red', label='Hotels count', ax=ax4)
+    ax1.set_ylabel('Temperature (°C)')
+    ax4.set_ylabel('Hotels count')
+    ax1.legend(loc='upper left')
+
+    plot_row += 1
 
