@@ -14,3 +14,7 @@ dist/
 build/
 ### Mac ###
 .DS_Store
+
+terraform/.terraform.lock.hcl
+terraform/.terraform
+terraform/*.plan
