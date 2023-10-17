@@ -19,29 +19,23 @@ def main(argv):
         dir = argv[1]
 
     if not os.path.isdir(f"{dir}/hotel-weather"):
-        raise "Not right path"
+        print("This directory doesn't contain `hotel-weather` directory")
+        exit()
+
     
-    # dictionary, where:
-    #   keys are relative paths of parquet files, grouped by day,
-    #   values are list of parquet files in a given day
-    parquets = {}
+    # set containing paths - directories' names (where parquet files are located), grouped by a day
+    parquets = set()
 
     # process files recursively 
-    print(f"Starting incremental copy of data from directory [{dir}]... ")
+    print(f"Collecting data from directory [{dir}]... ")
     for (dirpath, dirnames, filenames) in os.walk(dir):
         part = re.match(r".*(year=[0-9]{4}.month=[0-9]{2}.day=[0-9]{2}).*", dirpath)
         if part is None:
             continue
         grp = part.group(1)
+        parquets.add(grp)
 
-        for filename in filenames:
-            if not filename.endswith(".parquet"):
-                continue
-
-            fn = re.sub(r".*hotel\-weather.", "", f"{dirpath}/{filename}")
-            parquets.setdefault(grp, []).append(fn)
-
-
+    print(f"Sending files is about to begin... ")
     # here we have our files list, grouped by a day 
     for days in parquets:
         print(days)
@@ -49,9 +43,10 @@ def main(argv):
         # we will use `gsutil` tool
         # usage like: gsutil -m cp -r "year=2017\month=08\day=10" "gs://storage-bucket-select-gar/m13sparkstreaming/hotel-weather/year=2017/month=08/day=10"
         
-        full_sent_dir_path = f"{dir}/hotel-weather/{days}"
-        gsutil_cmd = ["gsutil", "-m", "cp", "-r", full_sent_dir_path, f"gs://{Config.BUCKET_NAME}/m13sparkstreaming/hotel-weather/{days}"]
-        print(f"Sending directory [{full_sent_dir_path}] using {gsutil_cmd}... ")
+        local_days_path = f"{dir}/hotel-weather/{days}"
+        remote_days_path = f"gs://{Config.BUCKET_NAME}/m13sparkstreaming/hotel-weather/{days}"
+        gsutil_cmd = ["gsutil", "-m", "cp", "-r", local_days_path, remote_days_path]
+        print(f"Sending directory [{local_days_path}] using `{' '.join(gsutil_cmd)}`... You can stop anytime by pressing CTRL-C.")
 
         subprocess.check_output(gsutil_cmd, shell=True)
 
