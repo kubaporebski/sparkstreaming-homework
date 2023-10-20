@@ -17,6 +17,11 @@
 
 # COMMAND ----------
 
+# MAGIC %md
+# MAGIC Make sure you have run incremental copy script.
+
+# COMMAND ----------
+
 # DBTITLE 1,Prepare the current notebook's environment
 import time 
 import threading
@@ -70,6 +75,11 @@ hw_stream = spark.readStream \
 
 # COMMAND ----------
 
+import time
+time.sleep(3600)
+
+# COMMAND ----------
+
 # DBTITLE 1,Start the streaming operation
 # how much time we will be running this (current cell) streaming code? [seconds]
 time_limit = 120 
@@ -94,6 +104,8 @@ thr.start()
 # COMMAND ----------
 
 # MAGIC %md
+# MAGIC ###  You can run all cells below while the streaming operation is still running
+# MAGIC
 # MAGIC Calculate in for each city each day:
 # MAGIC * Number of distinct hotels in the city.
 
