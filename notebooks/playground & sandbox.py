@@ -83,9 +83,16 @@ thr.start()
 # COMMAND ----------
 
 # MAGIC %sql
-# MAGIC select * from hotels_by_city_date
+# MAGIC select * from hotels_by_city_date 
+# MAGIC order by wthr_date, distinct_hotels_by_city desc
 
 # COMMAND ----------
 
 # MAGIC %sql
-# MAGIC select * from hotels_temperature_stats_by_city_date
+# MAGIC select * from hotels_temperature_stats_by_city_date 
+# MAGIC order by wthr_date
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC select * from top10_cities
